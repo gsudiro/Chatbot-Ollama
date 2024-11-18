@@ -67,8 +67,8 @@ python chatbot.py
 The models are stored by Ollama in the following locations:
 
 - Linux: `/usr/share/ollama/models`
-- macOS: `/usr/local/share/ollama/models`
-- Windows: `C:\ProgramData\ollama\models`
+- macOS: `$HOME/.ollama/models`
+- Windows: `C:\Users\%username%\.ollama\models`
 
 ## Technical Details
 

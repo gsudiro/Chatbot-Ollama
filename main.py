@@ -148,9 +148,9 @@ class ChatbotGUI:
             if sys.platform == "linux":
                 path = "/usr/share/ollama/models"
             elif sys.platform == "darwin":  # macOS
-                path = "/usr/local/share/ollama/models"
+                path = "$HOME/.ollama/models"
             elif sys.platform == "win32":
-                path = r"C:\ProgramData\ollama\models"
+                path = r"C:\Users\%username%\.ollama\models"
                 
             if os.path.exists(path):
                 total_size = sum(os.path.getsize(os.path.join(path, f)) 
@@ -190,7 +190,7 @@ class ChatbotGUI:
 
             Answer:
             """
-            model = OllamaLLM(model="llama3")
+            model = OllamaLLM(model="llama3:latest")
             prompt = ChatPromptTemplate.from_template(template)
             self.chain = prompt | model
             self.setup_complete = True
