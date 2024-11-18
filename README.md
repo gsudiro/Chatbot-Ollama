@@ -2,7 +2,7 @@
 
 A modern, desktop-based AI chatbot application that integrates with Ollama to provide a user-friendly interface for interacting with LLM models. Built with Python and CustomTkinter for a clean, modern look.
 
-![Chatbot Interface Placeholder](/api/placeholder/600/400)
+![Chatbot Interface Placeholder](imgs/img.png)
 
 ## Features
 

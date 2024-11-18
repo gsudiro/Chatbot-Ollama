@@ -105,11 +105,13 @@ class ChatbotGUI:
 
     def pull_model(self, model_name):
         try:
-            # More verbose pulling with real-time output
+            # Set encoding to utf-8 and errors to replace
             process = subprocess.Popen(
                 ["ollama", "pull", model_name],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                encoding='utf-8',  # Specify UTF-8 encoding
+                errors='replace',  # Replace invalid characters
                 universal_newlines=True
             )
             
@@ -121,6 +123,9 @@ class ChatbotGUI:
         except subprocess.CalledProcessError:
             self.update_status(f"Error pulling {model_name} model")
             return False
+        except Exception as e:
+            self.update_status(f"Error: {str(e)}")
+            return False
 
     def list_installed_models(self):
         try:
@@ -128,6 +133,8 @@ class ChatbotGUI:
                 ["ollama", "list"],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
+                encoding='utf-8',  # Specify UTF-8 encoding
+                errors='replace',  # Replace invalid characters
                 universal_newlines=True
             )
             
@@ -165,10 +172,10 @@ class ChatbotGUI:
                 return
 
         self.update_status("Checking model availability...")
-        if not self.check_model_availability("llama2"):
-            self.update_status("Downloading llama2 model...")
-            if not self.pull_model("llama2"):
-                self.update_status("Error: Failed to download llama2 model")
+        if not self.check_model_availability("llama3"):
+            self.update_status("Downloading llama3 model...")
+            if not self.pull_model("llama3"):
+                self.update_status("Error: Failed to download llama3 model")
                 return
 
         try:
@@ -183,7 +190,7 @@ class ChatbotGUI:
 
             Answer:
             """
-            model = OllamaLLM(model="llama2")
+            model = OllamaLLM(model="llama3")
             prompt = ChatPromptTemplate.from_template(template)
             self.chain = prompt | model
             self.setup_complete = True
