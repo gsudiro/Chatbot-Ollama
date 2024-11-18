@@ -11,61 +11,69 @@ from datetime import datetime
 
 class ChatbotGUI:
     def __init__(self):
-        # Initialize the window
         self.window = ctk.CTk()
         self.window.title("AI Chatbot")
         self.window.geometry("800x600")
         
-        # Configure grid layout
         self.window.grid_columnconfigure(0, weight=1)
         self.window.grid_rowconfigure(0, weight=1)
         
-        # Create main frame
         self.main_frame = ctk.CTkFrame(self.window)
         self.main_frame.grid(row=0, column=0, padx=10, pady=10, sticky="nsew")
         self.main_frame.grid_columnconfigure(0, weight=1)
         self.main_frame.grid_rowconfigure(0, weight=1)
         
-        # Create chat display
         self.chat_display = ctk.CTkTextbox(self.main_frame, wrap="word")
         self.chat_display.grid(row=0, column=0, padx=10, pady=(10, 5), sticky="nsew", columnspan=2)
         self.chat_display.configure(state="disabled")
         
-        # Create input frame
         self.input_frame = ctk.CTkFrame(self.main_frame)
         self.input_frame.grid(row=1, column=0, padx=10, pady=(5, 10), sticky="ew")
         self.input_frame.grid_columnconfigure(0, weight=1)
         
-        # Create input field
+        self.model_frame = ctk.CTkFrame(self.main_frame)
+        self.model_frame.grid(row=2, column=0, padx=10, pady=(0, 5), sticky="ew")
+        
+        self.model_var = ctk.StringVar(value="llama2")
+        self.model_select = ctk.CTkComboBox(
+            self.model_frame,
+            variable=self.model_var,
+            values=["llama2"],
+            width=200
+        )
+        self.model_select.grid(row=0, column=0, padx=5)
+        
+        self.refresh_button = ctk.CTkButton(
+            self.model_frame,
+            text="Refresh Models",
+            command=self.refresh_models,
+            width=100
+        )
+        self.refresh_button.grid(row=0, column=1, padx=5)
+        
+        self.download_button = ctk.CTkButton(
+            self.model_frame,
+            text="Download Model",
+            command=self.download_selected_model,
+            width=100
+        )
+        self.download_button.grid(row=0, column=2, padx=5)
+        
         self.input_field = ctk.CTkEntry(self.input_frame, placeholder_text="Type your message here...")
         self.input_field.grid(row=0, column=0, padx=(0, 10), sticky="ew")
         
-        # Create send button
         self.send_button = ctk.CTkButton(self.input_frame, text="Send", command=self.send_message)
         self.send_button.grid(row=0, column=1)
         
-        # Create models button
-        self.models_button = ctk.CTkButton(
-            self.input_frame, 
-            text="Show Models", 
-            command=self.list_installed_models,
-            width=100  # Make it smaller than the send button
-        )
-        self.models_button.grid(row=0, column=2, padx=(10, 0))
+        self.status_label = ctk.CTkLabel(self.main_frame, text="Status: Initializing...", anchor="w")
+        self.status_label.grid(row=3, column=0, padx=10, pady=(0, 5), sticky="w")
         
-        # Bind Enter key to send message
         self.input_field.bind("<Return>", lambda event: self.send_message())
         
-        # Initialize chatbot components
         self.context = ""
         self.chain = None
         self.setup_complete = False
         
-        # Status label
-        self.status_label = ctk.CTkLabel(self.main_frame, text="Status: Initializing...", anchor="w")
-        self.status_label.grid(row=2, column=0, padx=10, pady=(0, 5), sticky="w")
-        
-        # Start initialization in a separate thread
         threading.Thread(target=self.initialize_chatbot, daemon=True).start()
 
     def is_ollama_running(self):
@@ -105,13 +113,12 @@ class ChatbotGUI:
 
     def pull_model(self, model_name):
         try:
-            # Set encoding to utf-8 and errors to replace
             process = subprocess.Popen(
                 ["ollama", "pull", model_name],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                encoding='utf-8',  # Specify UTF-8 encoding
-                errors='replace',  # Replace invalid characters
+                encoding='utf-8',
+                errors='replace',
                 universal_newlines=True
             )
             
@@ -127,41 +134,34 @@ class ChatbotGUI:
             self.update_status(f"Error: {str(e)}")
             return False
 
-    def list_installed_models(self):
+    def refresh_models(self):
         try:
-            process = subprocess.Popen(
-                ["ollama", "list"],
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
-                encoding='utf-8',  # Specify UTF-8 encoding
-                errors='replace',  # Replace invalid characters
-                universal_newlines=True
-            )
-            
-            output = process.communicate()[0]
-            if output.strip():
-                self.add_message("System", f"Installed models:\n{output}")
+            response = requests.get("http://localhost:11434/api/tags")
+            if response.status_code == 200:
+                available_models = [model["name"] for model in response.json().get("models", [])]
+                
+                web_response = requests.get("https://ollama.com/api/models")
+                if web_response.status_code == 200:
+                    downloadable_models = [model["name"] for model in web_response.json()]
+                    all_models = list(set(available_models + downloadable_models))
+                    all_models.sort()
+                    
+                    self.model_select.configure(values=all_models)
+                    self.add_message("System", f"Found {len(all_models)} models")
+                else:
+                    self.add_message("System", "Error fetching downloadable models")
             else:
-                self.add_message("System", "No models installed yet.")
-                
-            # Also check disk usage
-            if sys.platform == "linux":
-                path = "/usr/share/ollama/models"
-            elif sys.platform == "darwin":  # macOS
-                path = "$HOME/.ollama/models"
-            elif sys.platform == "win32":
-                path = r"C:\Users\%username%\.ollama\models"
-                
-            if os.path.exists(path):
-                total_size = sum(os.path.getsize(os.path.join(path, f)) 
-                               for f in os.listdir(path) if os.path.isfile(os.path.join(path, f)))
-                size_gb = total_size / (1024**3)  # Convert to GB
-                self.add_message("System", f"Total models size: {size_gb:.2f} GB")
-                
-        except subprocess.CalledProcessError:
-            self.add_message("System", "Error listing models")
+                self.add_message("System", "Error fetching installed models")
         except Exception as e:
-            self.add_message("System", f"Error checking models: {str(e)}")
+            self.add_message("System", f"Error refreshing models: {str(e)}")
+
+    def download_selected_model(self):
+        model_name = self.model_var.get()
+        if not model_name:
+            return
+            
+        self.update_status(f"Downloading {model_name}...")
+        threading.Thread(target=self.pull_model, args=(model_name,), daemon=True).start()
 
     def initialize_chatbot(self):
         self.update_status("Checking Ollama service...")
@@ -171,33 +171,10 @@ class ChatbotGUI:
                 self.update_status("Error: Could not start Ollama service")
                 return
 
-        self.update_status("Checking model availability...")
-        if not self.check_model_availability("llama3"):
-            self.update_status("Downloading llama3 model...")
-            if not self.pull_model("llama3"):
-                self.update_status("Error: Failed to download llama3 model")
-                return
-
-        try:
-            self.update_status("Initializing AI model...")
-            template = """
-            Answer the question below.
-
-            Here is the conversation history:
-            {context}
-
-            Question: {question}
-
-            Answer:
-            """
-            model = OllamaLLM(model="llama3:latest")
-            prompt = ChatPromptTemplate.from_template(template)
-            self.chain = prompt | model
-            self.setup_complete = True
-            self.update_status("Ready!")
-            self.add_message("System", "Hello! I'm ready to chat. How can I help you today?")
-        except Exception as e:
-            self.update_status(f"Error: {str(e)}")
+        self.refresh_models()
+        self.setup_complete = True
+        self.update_status("Ready!")
+        self.add_message("System", "Hello! Please select a model and ensure it's downloaded before chatting.")
 
     def update_status(self, status):
         def update():
@@ -222,13 +199,31 @@ class ChatbotGUI:
         if not message:
             return
 
+        model_name = self.model_var.get()
+        if not self.check_model_availability(model_name):
+            self.add_message("System", f"Model {model_name} is not downloaded. Please download it first.")
+            return
+
         self.input_field.delete(0, "end")
         self.add_message("You", message)
         self.send_button.configure(state="disabled")
         
         def process_message():
             try:
-                result = self.chain.invoke({
+                template = """
+                Answer the question below.
+
+                Here is the conversation history:
+                {context}
+
+                Question: {question}
+
+                Answer:
+                """
+                model = OllamaLLM(model=f"{model_name}:latest")
+                chain = ChatPromptTemplate.from_template(template) | model
+                
+                result = chain.invoke({
                     "context": self.context,
                     "question": message
                 })
@@ -246,7 +241,7 @@ class ChatbotGUI:
         self.window.mainloop()
 
 if __name__ == "__main__":
-    ctk.set_appearance_mode("dark")  # Set the theme to dark mode
-    ctk.set_default_color_theme("blue")  # Set the color theme
+    ctk.set_appearance_mode("dark")
+    ctk.set_default_color_theme("blue")
     app = ChatbotGUI()
     app.run()
