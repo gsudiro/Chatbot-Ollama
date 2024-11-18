@@ -27,7 +27,7 @@ Before running the application, make sure you have:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/ai-chatbot.git
+git clone https://github.com/gsudiro/Chatbot-Ollama.git
 cd ai-chatbot
 ```
 
@@ -43,13 +43,15 @@ source .venv/bin/activate
 3. Install required packages:
 ```bash
 pip install customtkinter requests langchain-core langchain-ollama
+# Or
+pip install -r requirements.txt
 ```
 
 ## Usage
 
 1. Start the application:
 ```bash
-python chatbot.py
+python main.py
 ```
 
 2. The application will:
