@@ -27,7 +27,7 @@ Before running the application, make sure you have:
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/ai-chatbot.git
+git clone https://github.com/gsudiro/Chatbot-Ollama.git
 cd ai-chatbot
 ```
 
@@ -43,13 +43,15 @@ source .venv/bin/activate
 3. Install required packages:
 ```bash
 pip install customtkinter requests langchain-core langchain-ollama
+# Or
+pip install -r requirements.txt
 ```
 
 ## Usage
 
 1. Start the application:
 ```bash
-python chatbot.py
+python main.py
 ```
 
 2. The application will:
@@ -67,8 +69,8 @@ python chatbot.py
 The models are stored by Ollama in the following locations:
 
 - Linux: `/usr/share/ollama/models`
-- macOS: `/usr/local/share/ollama/models`
-- Windows: `C:\ProgramData\ollama\models`
+- macOS: `$HOME/.ollama/models`
+- Windows: `C:\Users\%username%\.ollama\models`
 
 ## Technical Details
 
